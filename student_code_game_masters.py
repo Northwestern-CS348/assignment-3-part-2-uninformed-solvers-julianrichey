@@ -33,8 +33,17 @@ class TowerOfHanoiGame(GameMaster):
         Returns:
             A Tuple of Tuples that represent the game state
         """
-        ### student code goes here
-        pass
+        facts = ['fact: (on ?X peg1)', 'fact: (on ?X peg2)', 'fact: (on ?X peg3)']
+        peglist = [[],[],[]]
+
+        for i, fact in enumerate(facts):
+            bindings = self.kb.kb_ask(parse_input(fact))
+            if bindings:
+                for disk in bindings:
+                    for bind in disk.bindings:
+                        peglist[i].append(int(str(bind.constant)[-1]))
+        
+        return (tuple(sorted(peglist[0])), tuple(sorted(peglist[1])), tuple(sorted(peglist[2])))
 
     def makeMove(self, movable_statement):
         """
@@ -52,9 +61,28 @@ class TowerOfHanoiGame(GameMaster):
         Returns:
             None
         """
-        ### Student code goes here
-        pass
+        disk = movable_statement.terms[0]
+        pegA = movable_statement.terms[1]
+        pegB = movable_statement.terms[2]
 
+        self.kb.kb_retract(Fact(Statement(['on', disk, pegA])))
+        self.kb.kb_assert(Fact(Statement(['on', disk, pegB])))
+        self.kb.kb_retract(Fact(Statement(['on_top', disk, pegA])))
+        self.kb.kb_assert(Fact(Statement(['on_top', disk, pegB])))
+
+        state = self.getGameState()
+        pegAcontents = state[int(str(pegA)[-1])-1]
+        if pegAcontents:
+            self.kb.kb_assert(Fact(Statement(['on_top', 'disk'+str(pegAcontents[0]), pegA])))
+        else:
+            self.kb.kb_assert(Fact(Statement(['empty', pegA])))
+        
+        pegBcontents = state[int(str(pegB)[-1])-1]
+        if pegBcontents[1:]:
+            self.kb.kb_retract(Fact(Statement(['on_top', 'disk'+str(pegBcontents[1]), pegB])))
+        else:
+            self.kb.kb_retract(Fact(Statement(['empty', pegB])))
+        
     def reverseMove(self, movable_statement):
         """
         See overridden parent class method for more information.
@@ -99,8 +127,15 @@ class Puzzle8Game(GameMaster):
         Returns:
             A Tuple of Tuples that represent the game state
         """
-        ### Student code goes here
-        pass
+        rowlist = [[0,0,0], [0,0,0], [0,0,0]]
+        for y in range(3):
+            for x in range(3):
+                bindingslist = self.kb.kb_ask(parse_input('fact: (pos ?tile pos' + str(x+1) + ' pos' + str(y+1) + ')'))
+                if bindingslist:
+                    rowlist[y][x] = int(str(bindingslist).split(':')[2].split('\n')[0][-1])
+                else:
+                    rowlist[y][x] = -1
+        return (tuple(rowlist[0]), tuple(rowlist[1]), tuple(rowlist[2]))
 
     def makeMove(self, movable_statement):
         """
@@ -118,8 +153,16 @@ class Puzzle8Game(GameMaster):
         Returns:
             None
         """
-        ### Student code goes here
-        pass
+        piece = movable_statement.terms[0]
+        initX = movable_statement.terms[1]
+        initY = movable_statement.terms[2]
+        targX = movable_statement.terms[3]
+        targY = movable_statement.terms[4]
+
+        self.kb.kb_retract(Fact(Statement(['pos', piece, initX, initY])))
+        self.kb.kb_assert(Fact(Statement(['pos', piece, targX, targY])))
+        self.kb.kb_retract(Fact(Statement(['empty', targX, targY])))
+        self.kb.kb_assert(Fact(Statement(['empty', initX, initY])))
 
     def reverseMove(self, movable_statement):
         """
